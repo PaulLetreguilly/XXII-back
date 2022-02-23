@@ -3,6 +3,9 @@ const formidable = require("express-formidable");
 const cors = require("cors");
 const mongoose = require("mongoose");
 const cloudinary = require("cloudinary").v2;
+const SHA256 = require("crypto-js/sha256");
+const encBase64 = require("crypto-js/enc-base64");
+const uid2 = require("uid2");
 require("dotenv").config();
 
 const app = express();
@@ -30,8 +33,17 @@ app.post("/signup", async (req, res) => {
 
     if (user) {
       res.status(409).json({ message: "This email already has an account" });
+      //   console.log("not ok");
     } else {
-      if (req.fields.email && req.fields.password && req.fields.username) {
+      if (
+        req.fields.email &&
+        req.fields.password &&
+        req.fields.username &&
+        req.fields.name &&
+        req.fields.surname
+      ) {
+        // console.log("okay");
+        // console.log(req.fields);
         const token = uid2(64);
         const salt = uid2(64);
         const hash = SHA256(req.fields.password + salt).toString(encBase64);
@@ -39,6 +51,8 @@ app.post("/signup", async (req, res) => {
           email: req.fields.email,
           username: req.fields.username,
           password: req.fields.password,
+          name: req.fields.name,
+          surname: req.fields.surname,
           hash: hash,
           salt: salt,
           token: token,
@@ -51,9 +65,12 @@ app.post("/signup", async (req, res) => {
         };
 
         await user.save();
+        // console.log(user);
 
         res.status(200).json(body);
       } else {
+        // console.log("okayish");
+
         res.status(400).json({ error: "Missing parameters" });
       }
     }
@@ -135,6 +152,14 @@ app.post("/user/update", authentified, async (req, res) => {
 //-----------------------------------------------------------------------//
 //--------------------------- CRUD user (fin) --------------------------//
 //---------------------------------------------------------------------//
+
+//-----------------------------------------------------------------------//
+//----------------------------- CRUD video  ----------------------------//
+//---------------------------------------------------------------------//
+
+//-------------------------------------------------------------------------//
+//---------------------------- CRUD video (fin)  -------------------------//
+//-----------------------------------------------------------------------//
 
 app.all("*", (req, res) => {
   res.status(404).send("page not found");
