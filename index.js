@@ -14,7 +14,14 @@ app.use(cors());
 
 mongoose.connect(process.env.MONGODB_URI);
 
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
 const User = require("./models/User");
+const Video = require("./models/Video");
 const authentified = require("./middleware/authentified");
 
 app.get("/", (req, res) => {
@@ -107,7 +114,7 @@ app.post("/login", async (req, res) => {
 
 // 3e étape : route pour renvoyer la liste des utilisateurs
 
-app.get("/user", async (req, res) => {
+app.get("/users", async (req, res) => {
   try {
     const user = await User.find();
 
@@ -142,7 +149,19 @@ app.post("/user/update", authentified, async (req, res) => {
       user.surname = req.fields.surname;
       user.markModified("surname");
     }
+
     await user.save();
+    res.status(200).json(user);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// 5e étape : trouver les données d'un utilisateur particulier via son id
+
+app.get("/user", authentified, async (req, res) => {
+  try {
+    const user = req.user;
     res.status(200).json(user);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -156,6 +175,47 @@ app.post("/user/update", authentified, async (req, res) => {
 //-----------------------------------------------------------------------//
 //----------------------------- CRUD video  ----------------------------//
 //---------------------------------------------------------------------//
+
+app.post("/upload", authentified, async (req, res) => {
+  try {
+    const user = req.user;
+    // console.log(req.fields);
+    // console.log(req.files.video.path);
+    let videoToUpload = req.files.video.path;
+    const uploaded = await cloudinary.uploader.upload(videoToUpload, {
+      resource_type: "video",
+      folder: `XXII/user-${user._id}`,
+      public_id: "my-video",
+      chunk_size: 6000000,
+    });
+    console.log(uploaded.secure_url);
+    const video = new Video({
+      user: user._id,
+      title: req.fields.title,
+      description: req.fields.description,
+      url: uploaded.secure_url,
+      view: 0,
+      like: [],
+      dislike: [],
+    });
+    await video.save();
+
+    res.status(200).json(video);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.get("/myvideos", authentified, async (req, res) => {
+  try {
+    const user = req.user;
+    const videos = await Video.find({ user: user._id });
+    // console.log(videos);
+    res.status(200).json(videos);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
 
 //-------------------------------------------------------------------------//
 //---------------------------- CRUD video (fin)  -------------------------//
