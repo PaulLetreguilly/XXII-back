@@ -28,6 +28,10 @@ app.get("/", (req, res) => {
   res.send("Welcome to my DataVOD api");
 });
 
+// *************************************************************************************
+// ALL ROUTES ARE TEMPORARELY HERE, I'LL PUT THEM INTO FOLDERS ONCE EVERYTHING IS WORKING
+// *************************************************************************************
+
 //-----------------------------------------------------------------//
 //--------------------------- CRUD user ---------------------------//
 //-----------------------------------------------------------------//
@@ -212,6 +216,29 @@ app.get("/myvideos", authentified, async (req, res) => {
     const videos = await Video.find({ user: user._id });
     // console.log(videos);
     res.status(200).json(videos);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.post("/update/video", authentified, async (req, res) => {
+  try {
+    const user = req.user;
+    // console.log(req.fields);
+    const video = await Video.findById(req.fields.id);
+    console.log(video);
+
+    if (req.fields.title) {
+      video.title = req.fields.title;
+      video.markModified("title");
+    }
+    if (req.fields.description) {
+      video.description = req.fields.description;
+      video.markModified("description");
+    }
+    await video.save();
+
+    res.status(200).json(video);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
