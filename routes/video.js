@@ -138,9 +138,22 @@ router.post("/video/like", authentified, async (req, res) => {
 });
 
 // video delete route
-router.post("/video/delete", async (req, res) => {
+router.post("/video/delete", authentified, async (req, res) => {
   try {
+    const user = req.user;
     if (req.fields.id) {
+      // first delete the video from user.videos
+      const arr = [];
+      for (let i = 0; i < user.videos.length; i++) {
+        if (req.fields.id !== user.videos) {
+          arr.push(user.videos[i]);
+        }
+      }
+      user.videos = arr;
+      user.markModified("videos");
+      user.save();
+
+      // then delete it from video database folder
       const videoToDelete = await Video.findByIdAndDelete(req.fields.id);
 
       res.status(200).json({ message: "Video removed" });
