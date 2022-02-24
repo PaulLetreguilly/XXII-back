@@ -180,6 +180,7 @@ app.get("/user", authentified, async (req, res) => {
 //----------------------------- CRUD video  ----------------------------//
 //---------------------------------------------------------------------//
 
+// upload video route
 app.post("/upload", authentified, async (req, res) => {
   try {
     const user = req.user;
@@ -192,7 +193,7 @@ app.post("/upload", authentified, async (req, res) => {
       public_id: "my-video",
       chunk_size: 6000000,
     });
-    console.log(uploaded.secure_url);
+    // console.log(uploaded.secure_url);
     const video = new Video({
       user: user._id,
       title: req.fields.title,
@@ -204,12 +205,17 @@ app.post("/upload", authentified, async (req, res) => {
     });
     await video.save();
 
+    user.videos.push(video._id);
+    user.markModified("videos");
+    await user.save();
+
     res.status(200).json(video);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
 });
 
+// list of a user's videos route
 app.get("/myvideos", authentified, async (req, res) => {
   try {
     const user = req.user;
@@ -220,13 +226,13 @@ app.get("/myvideos", authentified, async (req, res) => {
     res.status(400).json({ message: error.message });
   }
 });
-
+// update title/description of videos route
 app.post("/update/video", authentified, async (req, res) => {
   try {
     const user = req.user;
     // console.log(req.fields);
     const video = await Video.findById(req.fields.id);
-    console.log(video);
+    // console.log(video);
 
     if (req.fields.title) {
       video.title = req.fields.title;
@@ -239,6 +245,108 @@ app.post("/update/video", authentified, async (req, res) => {
     await video.save();
 
     res.status(200).json(video);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// route for like / dislike buttons on videos
+app.post("/video/like", authentified, async (req, res) => {
+  try {
+    const user = req.user;
+    const video = await Video.findById(req.fields.id);
+    const liked = user.token;
+    if (req.fields.like) {
+      // if user clicked on like
+      if (
+        video.like.indexOf(liked) === -1 &&
+        video.dislike.indexOf(liked) === -1
+      ) {
+        // if this user didn't use like or dislike on this video before
+        video.like.push(liked);
+      } else if (video.dislike.indexOf(liked) !== -1) {
+        // if this user already used dislike
+        const arr = [];
+        for (let i = 0; i < video.dislike.length; i++) {
+          if (video.dislike[i] !== liked) {
+            // we push all other id's in a new array
+            arr.push(video.dislike[i]);
+          }
+        }
+        // replace the array dislike with the new one, "deleting" the previous dislike
+        video.dislike = arr;
+        video.markModified("dislike");
+        video.like.push(liked);
+      }
+      await video.save();
+    }
+    if (req.fields.dislike) {
+      // if user clicked on dislike
+      if (
+        video.like.indexOf(liked) === -1 &&
+        video.dislike.indexOf(liked) === -1
+      ) {
+        // if this user didn't use like or dislike on this video before
+        video.dislike.push(liked);
+      } else if (video.like.indexOf(liked) !== -1) {
+        // if this user already used like
+        const arr = [];
+        for (let i = 0; i < video.like.length; i++) {
+          if (video.like[i] !== liked) {
+            // we push all other id's in a new array
+            arr.push(video.like[i]);
+          }
+        }
+        // replace the array like with the new one, "deleting" the previous like
+        video.like = arr;
+        video.markModified("like");
+        video.dislike.push(liked);
+      }
+      await video.save();
+    }
+    res.status(200).send("registered");
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// video delete route
+app.post("/video/delete", async (req, res) => {
+  try {
+    if (req.fields.id) {
+      const videoToDelete = await Video.findByIdAndDelete(req.fields.id);
+
+      res.status(200).json({ message: "Video removed" });
+    } else {
+      res.status(400).json({ message: "Missing id" });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// view counter route
+app.post("/video/views", async (req, res) => {
+  try {
+    const videoViewed = await Video.findById(req.fields.id);
+
+    const count = videoViewed.view + 1;
+    videoViewed.view = count;
+
+    videoViewed.markModified("view");
+    await videoViewed.save();
+
+    res.status(200).json({ message: "View counted" });
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+//list of videos route
+app.get("/videos", async (req, res) => {
+  try {
+    const videos = await Video.find();
+    res.status(200).json(videos);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
