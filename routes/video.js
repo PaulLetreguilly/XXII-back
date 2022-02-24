@@ -172,7 +172,7 @@ router.post("/video/views", async (req, res) => {
 //list of videos route
 router.get("/videos", async (req, res) => {
   try {
-    const videos = await Video.find().sort({ view: -1 });
+    const videos = await Video.find();
     res.status(200).json(videos);
   } catch (error) {
     res.status(400).json({ message: error.message });
