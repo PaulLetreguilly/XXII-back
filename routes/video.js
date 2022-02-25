@@ -116,7 +116,6 @@ router.post("/video/like", authentified, async (req, res) => {
         // replace the array like with the new one, "deleting" the previous like
         video.like = arr;
         video.markModified("like");
-        video.dislike.push(liked);
       }
       await video.save();
     }
@@ -153,7 +152,6 @@ router.post("/video/like", authentified, async (req, res) => {
         // replace the array dislike with the new one, "deleting" the previous dislike
         video.dislike = arr;
         video.markModified("dislike");
-        video.like.push(liked);
       }
       await video.save();
     }
