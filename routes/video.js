@@ -104,6 +104,19 @@ router.post("/video/like", authentified, async (req, res) => {
         video.dislike = arr;
         video.markModified("dislike");
         video.like.push(liked);
+      } else if (video.like.indexOf(liked) !== -1) {
+        // if this user already used like
+        const arr = [];
+        for (let i = 0; i < video.like.length; i++) {
+          if (video.like[i] !== liked) {
+            // we push all other id's in a new array
+            arr.push(video.like[i]);
+          }
+        }
+        // replace the array like with the new one, "deleting" the previous like
+        video.like = arr;
+        video.markModified("like");
+        video.dislike.push(liked);
       }
       await video.save();
     }
@@ -128,6 +141,19 @@ router.post("/video/like", authentified, async (req, res) => {
         video.like = arr;
         video.markModified("like");
         video.dislike.push(liked);
+      } else if (video.dislike.indexOf(liked) !== -1) {
+        // if this user already used dislike
+        const arr = [];
+        for (let i = 0; i < video.dislike.length; i++) {
+          if (video.dislike[i] !== liked) {
+            // we push all other id's in a new array
+            arr.push(video.dislike[i]);
+          }
+        }
+        // replace the array dislike with the new one, "deleting" the previous dislike
+        video.dislike = arr;
+        video.markModified("dislike");
+        video.like.push(liked);
       }
       await video.save();
     }
